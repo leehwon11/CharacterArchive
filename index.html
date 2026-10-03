@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CHARACTER/FILES</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🗂️</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&family=Noto+Serif+KR:wght@400;600&family=JetBrains+Mono:wght@400;700&display=swap">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app"></div>
+<div id="fmt" class="fmt" hidden></div>
+<div id="modal-root"></div>
+<div id="toast" role="status" aria-live="polite"></div>
+<script>
+  function showBoot(msg) {
+    var el = document.getElementById('app');
+    if (el && !el.children.length) el.innerHTML = '<div class="boot">시작하지 못했어요<br><small>' + String(msg).replace(/</g, '&lt;') + '</small></div>';
+  }
+  window.addEventListener('error', function (e) { showBoot(e.message + (e.filename ? ' (' + e.filename.split('/').pop() + ':' + e.lineno + ')' : '')); });
+  window.addEventListener('unhandledrejection', function (e) { showBoot(e.reason && e.reason.message ? e.reason.message : e.reason); });
+  setTimeout(function () { showBoot('8초가 지나도 화면이 안 떠요. js/config.js 의 URL·키를 확인해주세요.'); }, 8000);
+</script>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
