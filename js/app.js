@@ -56,13 +56,16 @@ function shell() {
       <form id="sf" role="search" style="display:contents"><label for="sq" class="hide">전체 검색</label>
         <input id="sq" class="search" type="search" placeholder="전체 검색 — 이름, 메모, 썰, 대사"></form>
       <span class="saved" id="saved" aria-live="polite"></span>
-      <button class="btn ghost" data-act="backup">백업</button>
-      <button class="icon-btn" data-act="settings" aria-label="설정" title="설정">${ICON.gear}</button>
-      <button class="btn solid" data-act="new">+ 새 파일</button>
+      <button class="btn ghost" data-act="backup" aria-label="백업">${ICON.box}<span class="lbl">백업</span></button>
+      <button class="btn ghost" data-act="settings" aria-label="설정" title="설정">${ICON.gear}</button>
+      <button class="btn solid" data-act="new" aria-label="새 파일">+<span class="lbl"> 새 파일</span></button>
     </header>
     <nav class="folders" id="folders" aria-label="캐릭터"></nav>
     <div class="paper" id="paper"></div>`;
   setStatusEl($(app, '#saved'));
+  const top = $(app, '.top');
+  const setTop = () => document.documentElement.style.setProperty('--top-h', top.offsetHeight + 'px');
+  new ResizeObserver(setTop).observe(top); setTop();
   $(app, '#sf').onsubmit = (e) => { e.preventDefault(); const q = $(app, '#sq').value.trim(); if (q) openSearch(q); };
   $(app, '[data-act=new]').onclick = newChar;
   $(app, '[data-act=backup]').onclick = () => openBackup();
