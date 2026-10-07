@@ -12,6 +12,7 @@ export const ICON = {
   up: P('<path d="M12 19V5"/><path d="M6 11l6-6 6 6"/>'),
   down: P('<path d="M12 5v14"/><path d="M6 13l6 6 6-6"/>'),
   upload: P('<path d="M12 16V4"/><path d="M7 9l5-5 5 5"/><path d="M4 20h16"/>'),
+  box: P('<path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/>'),
   gear: P('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/>'),
 };
 export const iconBtn = (act, label, icon, cls = '', data = '') =>
@@ -181,7 +182,9 @@ export function initFmt() {
     el.hidden = false;
     const w = el.offsetWidth || 300;
     el.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.left + r.width / 2 - w / 2)) + 'px';
-    el.style.top = Math.max(8, r.top - 50) + 'px';
+    // 터치 기기는 기본 복사 메뉴가 위에 뜨니까 툴바를 아래로
+    const below = matchMedia('(pointer: coarse)').matches || r.top < 70;
+    el.style.top = (below ? Math.min(innerHeight - 60, r.bottom + 12) : r.top - 50) + 'px';
   });
   window.addEventListener('scroll', () => (el.hidden = true), true);
 }
