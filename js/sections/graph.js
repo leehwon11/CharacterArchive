@@ -78,10 +78,10 @@ export default async function graph({ el, c, head }) {
     if (!rels.length) return `<div class="empty"><b>관계가 없어요</b>“+ 내 캐릭터”나 “+ 외부 캐릭터”로 이어보세요.</div>`;
     return `<table class="rel-table"><thead><tr><th>상대</th><th>관계</th><th>방향</th><th>설명</th><th><span class="hide">편집</span></th></tr></thead><tbody>
       ${rels.map((r) => { const o = otherOf(r); return `<tr>
-        <td>${o.ext ? `${esc(o.name)} <span class="mono muted" style="font-size:10px">외부</span>` : `<a href="#/c/${o.key}/graph">${esc(o.name)}</a>`}</td>
-        <td><span class="reltag" style="color:${relColor(r.type)}">${esc(r.type || '—')}</span></td>
-        <td class="mono">${dirMark[relDir(r)]}</td>
-        <td style="white-space:pre-wrap">${esc(r.descr)}</td>
+        <td data-l="상대">${o.ext ? `${esc(o.name)} <span class="mono muted" style="font-size:10px">외부</span>` : `<a href="#/c/${o.key}/graph">${esc(o.name)}</a>`}</td>
+        <td data-l="관계"><span class="reltag" style="color:${relColor(r.type)}">${esc(r.type || '—')}</span></td>
+        <td class="mono" data-l="방향">${dirMark[relDir(r)]}</td>
+        <td style="white-space:pre-wrap" data-l="설명">${esc(r.descr)}</td>
         <td style="white-space:nowrap"><button class="btn sm ghost" data-edit="${r.id}">수정</button> ${iconBtn('rel-del', '관계 삭제', 'del', 'del', `data-del="${r.id}"`)}</td></tr>`; }).join('')}
       </tbody></table>`;
   }
