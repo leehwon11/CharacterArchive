@@ -39,6 +39,7 @@ img { max-width: 100%; display: block; }
 .saved { font-family: var(--mono); font-size: 11px; color: var(--mute); min-width: 64px; text-align: right; }
 .btn { border: 1px solid var(--ink); background: transparent; color: var(--ink); border-radius: 8px; padding: 9px 14px; font-size: 13px; min-height: 40px; display: inline-flex; align-items: center; gap: 6px; }
 .btn:hover { background: var(--paper); }
+.btn svg { width: 16px; height: 16px; flex-shrink: 0; }
 .btn.solid { background: var(--ink); color: var(--paper); border-color: var(--ink); }
 .btn.solid:hover { background: #000; }
 .btn.ghost { border-color: var(--line); color: var(--ink2); }
@@ -206,19 +207,97 @@ img { max-width: 100%; display: block; }
 
 /* ── 모바일 ── */
 @media (max-width: 860px) {
-  .top { padding: 12px 14px; }
+  /* 상단 */
+  .top { padding: calc(10px + env(safe-area-inset-top, 0px)) 12px 8px; gap: 8px; position: sticky; top: 0; z-index: 30; background: var(--ground); }
+  body { padding-top: 0; }
+  .brand { font-size: 13px; letter-spacing: 1px; }
   .top .search { order: 9; flex-basis: 100%; max-width: none; margin: 0; }
-  .folders { padding: 0 14px; }
-  .paper { margin: 0 0 0; border-radius: 0; flex-direction: column; min-height: auto; }
-  .index { width: auto; position: static; display: flex; gap: 6px; overflow-x: auto; padding: 12px 14px; border-right: none; border-bottom: 1px solid var(--line); scrollbar-width: none; }
+  .top .lbl { display: none; }
+  .top .btn { min-height: 44px; min-width: 44px; padding: 8px 12px; justify-content: center; }
+  .saved { margin-left: auto; min-width: 0; }
+
+  /* 캐릭터 탭 · 목차 */
+  .folders { padding: 4px 12px 0; }
+  .folder { padding: 10px 14px 12px; min-height: 44px; }
+  .kind-filter { min-height: 40px; }
+  .paper { margin: 0; border-radius: 0; flex-direction: column; min-height: auto; }
+  .index { width: auto; position: sticky; top: var(--top-h, 112px); z-index: 20; background: var(--paper); display: flex; gap: 6px; overflow-x: auto; padding: 10px 12px; border-right: none; border-bottom: 1px solid var(--line); scrollbar-width: none; }
   .index::-webkit-scrollbar { display: none; }
   .index .lab { display: none; }
-  .index a { border: 1px solid var(--line); border-radius: 100px; padding: 6px 12px; white-space: nowrap; }
-  .index a.on { border-color: var(--ink); }
-  .sheet { padding: 20px 16px 60px; }
-  .frow { grid-template-columns: 1fr; gap: 4px; }
-  .name-input { font-size: 38px; }
-  .photo { width: 120px; height: 150px; }
-  .tl-item { grid-template-columns: 26px minmax(0, 1fr); }
-  .tl-item .order { grid-column: 2; flex-direction: row; }
+  .index a { border: 1px solid var(--line); border-radius: 100px; padding: 8px 14px; white-space: nowrap; min-height: 40px; align-items: center; }
+  .index a.on { border-color: var(--ink); background: var(--ink); color: var(--paper); }
+  .index a.on .n { color: var(--paper); opacity: .7; }
+
+  /* 종이 */
+  .sheet { padding: 18px 14px 80px; gap: 18px; }
+  .sheet-head { gap: 8px 10px; }
+  .sheet-head h2 { font-size: 22px; }
+  .sheet-head .grow { flex-basis: 100%; height: 0; }
+  .frow { grid-template-columns: 1fr; gap: 2px; padding: 10px 0; }
+
+  /* iOS 확대 방지: 입력칸 16px 이상 */
+  input, select, textarea, .rich, .line-input, .card .title, .card .sub, .field input, .field select, .field textarea { font-size: max(16px, var(--fs)) !important; }
+  .song input, .card .sub { font-size: 16px !important; }
+
+  /* 프로필 머리 */
+  .ph { gap: 16px; }
+  .ph > div:first-child { display: flex; gap: 12px; align-items: flex-end; }
+  .photo { width: 110px; height: 140px; }
+  .ph-main { min-width: 0; flex-basis: 100%; }
+  .name-input { font-size: 34px !important; letter-spacing: -1px; }
+  .palette .sw { width: 44px; height: 32px; }
+  .palette .add { width: 44px; height: 32px; }
+  .song { display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; gap: 6px 8px; padding: 8px 0; border-top: 1px dashed var(--line); }
+  .song input { width: 100% !important; grid-column: 2; }
+  .song > span { grid-row: 1; }
+  .song a, .song .icon-btn { grid-column: 3; grid-row: 1; }
+  .subtabs { overflow-x: auto; flex-wrap: nowrap; scrollbar-width: none; }
+  .subtabs::-webkit-scrollbar { display: none; }
+  .subtab { white-space: nowrap; min-height: 40px; }
+
+  /* 버튼 터치 영역 */
+  .icon-btn { width: 44px; height: 44px; }
+  .btn.sm { min-height: 40px; padding: 8px 12px; }
+  .chip { min-height: 40px; padding: 8px 14px; }
+  .toolbar { gap: 6px; }
+
+  /* 카드 */
+  .card-top { gap: 6px; }
+  .card .title { flex-basis: 100%; order: -1; font-size: 17px !important; }
+  .card-top .meta { margin-right: auto; }
+  .links .lk { min-height: 36px; padding: 6px 12px; }
+
+  /* 타임라인 */
+  .tl-item { grid-template-columns: 26px minmax(0, 1fr); gap: 10px; }
+  .tl-item .order { grid-column: 2; flex-direction: row; justify-content: flex-end; }
+
+  /* 갤러리 */
+  .gallery { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .dropzone { padding: 16px; min-height: 64px; }
+
+  /* 관계도 */
+  .graph-wrap { height: 62vh; margin: 0 -14px; border-left: none; border-right: none; }
+  .rel-table thead { display: none; }
+  .rel-table, .rel-table tbody, .rel-table tr, .rel-table td { display: block; width: 100%; }
+  .rel-table tr { padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .rel-table td { border: none; padding: 3px 0; }
+  .rel-table td[data-l]::before { content: attr(data-l); display: inline-block; width: 52px; font-family: var(--mono); font-size: 11px; color: var(--mute); }
+
+  /* 모달은 아래에서 올라오는 시트로 */
+  .modal-bg { align-items: flex-end; padding: 0; }
+  .modal { width: 100% !important; max-height: 90vh; border-radius: 16px 16px 0 0; padding: 20px 16px calc(20px + env(safe-area-inset-bottom, 0px)); }
+  .m-acts .btn { flex: 1; justify-content: center; min-height: 48px; }
+
+  /* 라이트박스 */
+  .lightbox { padding: 12px; }
+  .lightbox .bar { flex-wrap: wrap; justify-content: center; }
+
+  /* 서식 툴바 */
+  .fmt button { width: 40px; height: 40px; }
+  #toast { bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
+}
+/* 마우스가 없는 기기: 호버로만 보이던 버튼 항상 보이기 */
+@media (hover: none) {
+  .shot .acts { opacity: 1; }
+  .palette .sw:hover::after { content: none; }
 }
