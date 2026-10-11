@@ -1,6 +1,6 @@
 import { saveChar, deleteChar, KINDS } from '../app.js';
 import { upload, removeFiles } from '../db.js';
-import { esc, $, $$, imgTag, hydrate, pickFiles, shrink, guard, richHTML, bindRich, iconBtn } from '../ui.js';
+import { esc, $, $$, imgTag, hydrate, pickFiles, shrink, guard, richHTML, bindRich, iconBtn, toast } from '../ui.js';
 
 export const PROFILE = {
   basic: ['기본', [
@@ -45,10 +45,13 @@ export default async function profile({ el, c, sub, head }) {
         <label for="pi" class="hide">한 줄 소개</label>
         <input id="pi" class="line-input" style="color:var(--ink2)" value="${esc(c.intro)}" placeholder="한 줄 소개">
         <div class="palette" aria-label="대표 컬러">
-          <label class="sw" style="background:${esc(c.color)};cursor:pointer" title="대표색 바꾸기"><input type="color" value="${esc(c.color)}" data-act="main-color" style="opacity:0;width:100%;height:100%;cursor:pointer" aria-label="대표색"></label>
+          <span class="sw" style="background:${esc(c.color)}" aria-hidden="true"></span>
+          <label for="hexmain" class="hide">대표색 hex</label>
+          <input id="hexmain" class="line-input mono" style="width:96px;font-size:13px;margin:0 12px 0 8px" value="${esc(c.color)}" maxlength="7" placeholder="#000000" autocomplete="off" spellcheck="false">
           ${(c.palette || []).map((col, i) => `<button type="button" class="sw" style="background:${esc(col)}" data-pal="${i}" aria-label="${esc(col)} 지우기" title="${esc(col)} · 눌러서 지우기"></button>`).join('')}
-          <label class="add" style="display:inline-flex;align-items:center;justify-content:center;cursor:pointer" title="색 추가">+<input type="color" data-act="pal-add" style="position:absolute;opacity:0;width:1px;height:1px" aria-label="팔레트 색 추가"></label>
-          <span class="mono muted" style="font-size:11px;margin-left:10px">${esc(c.color)}</span>
+          <label for="hexadd" class="hide">팔레트에 색 추가 (hex)</label>
+          <input id="hexadd" class="line-input mono" style="width:96px;font-size:13px;margin-left:8px" maxlength="7" placeholder="+ #hex" autocomplete="off" spellcheck="false">
+          <button type="button" class="btn sm ghost" data-act="pal-add">추가</button>
         </div>
         <div class="songs">
           ${(c.songs || []).map((s, i) => `
@@ -79,8 +82,17 @@ export default async function profile({ el, c, sub, head }) {
   $$(el, '[data-f]').forEach((i) => (i.oninput = () => { p[i.dataset.f] = i.value; save({ profile: p }); }));
   bindRich(el, (k, html) => { p[k] = html; save({ profile: p }); });
 
-  $(el, '[data-act=main-color]').onchange = (e) => { save({ color: e.target.value }); profile({ el, c, sub, head }); };
-  $(el, '[data-act=pal-add]').onchange = (e) => { save({ palette: [...(c.palette || []), e.target.value] }); profile({ el, c, sub, head }); };
+  const norm = (v) => { v = v.trim(); if (!v.startsWith('#')) v = '#' + v; if (/^#[0-9a-f]{3}$/i.test(v)) v = '#' + [...v.slice(1)].map((x) => x + x).join(''); return /^#[0-9a-f]{6}$/i.test(v) ? v.toLowerCase() : null; };
+  const hm = $(el, '#hexmain');
+  hm.oninput = () => { const v = norm(hm.value); hm.setAttribute('aria-invalid', String(!v)); if (v) { save({ color: v }); hm.previousElementSibling.previousElementSibling.style.background = v; } };
+  hm.onblur = () => { if (!norm(hm.value)) { hm.value = c.color; hm.removeAttribute('aria-invalid'); } };
+  const addPal = () => {
+    const v = norm($(el, '#hexadd').value);
+    if (!v) return toast('#ff6600 처럼 6자리 hex 코드로 입력해주세요');
+    save({ palette: [...(c.palette || []), v] }); profile({ el, c, sub, head });
+  };
+  $(el, '[data-act=pal-add]').onclick = addPal;
+  $(el, '#hexadd').onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); addPal(); } };
   $$(el, '[data-pal]').forEach((b) => (b.onclick = () => { const pal = [...c.palette]; pal.splice(+b.dataset.pal, 1); save({ palette: pal }); profile({ el, c, sub, head }); }));
 
   $$(el, '[data-song]').forEach((i) => (i.oninput = () => { c.songs[+i.dataset.song][i.dataset.k] = i.value; save({ songs: c.songs }); }));
