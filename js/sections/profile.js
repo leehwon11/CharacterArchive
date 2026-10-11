@@ -27,7 +27,7 @@ export default async function profile({ el, c, sub, head }) {
   const p = c.profile || (c.profile = {});
 
   el.innerHTML = `
-    ${head(`<button class="btn sm danger" data-act="discard">파일 폐기</button>`)}
+    ${head(`<button class="btn sm ghost" data-act="share">공유 링크</button><button class="btn sm danger" data-act="discard">파일 폐기</button>`)}
     <div class="ph">
       <div>
         <button type="button" class="photo" data-act="photo" aria-label="사진 바꾸기">${imgTag(c.image_path, c.name) || '사진 올리기'}</button>
@@ -111,4 +111,5 @@ export default async function profile({ el, c, sub, head }) {
   };
   $(el, '[data-act=photo-del]')?.addEventListener('click', () => { const old = c.image_path; saveChar(c, { image_path: null }); removeFiles([old]); profile({ el, c, sub, head }); });
   $(el, '[data-act=discard]').onclick = () => deleteChar(c);
+  $(el, '[data-act=share]').onclick = async () => (await import('./share.js')).openShare(c);
 }
