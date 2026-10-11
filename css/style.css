@@ -95,7 +95,7 @@ img { max-width: 100%; display: block; }
 .line-input::placeholder, .name-input::placeholder { color: #aaa69c; }
 .palette { display: flex; align-items: center; flex-wrap: wrap; gap: 0; }
 .palette .sw { width: 40px; height: 28px; border: none; padding: 0; position: relative; }
-.palette .sw:hover::after { content: '×'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.35); color: #fff; font-size: 14px; }
+.palette button.sw:hover::after { content: '×'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.35); color: #fff; font-size: 14px; }
 .palette .add { width: 28px; height: 28px; border: 1px dashed var(--line); background: transparent; color: var(--mute); margin-left: 6px; border-radius: 4px; }
 .songs { display: flex; flex-direction: column; gap: 6px; }
 .song { display: flex; gap: 8px; align-items: center; font-family: var(--mono); font-size: 12px; flex-wrap: wrap; }
@@ -302,5 +302,5 @@ img { max-width: 100%; display: block; }
 /* 마우스가 없는 기기: 호버로만 보이던 버튼 항상 보이기 */
 @media (hover: none) {
   .shot .acts { opacity: 1; }
-  .palette .sw:hover::after { content: none; }
+  .palette button.sw:hover::after { content: none; }
 }
