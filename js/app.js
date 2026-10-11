@@ -180,6 +180,8 @@ export async function reloadAll() {
 
 async function start() {
   if (SUPABASE_URL.includes('YOUR-PROJECT')) { app.innerHTML = '<div class="boot">js/config.js 에 Supabase URL과 키를 넣어주세요.</div>'; return; }
+  const sh = location.hash.match(/^#\/share\/([A-Za-z0-9_-]{16,64})$/);
+  if (sh) { const { publicView } = await import('./sections/share.js'); return publicView(app, sh[1]); }
   if (!state.session) return login();
   app.innerHTML = '<div class="boot">파일 여는 중…</div>';
   await reloadAll();
@@ -189,7 +191,12 @@ async function start() {
 }
 
 let started = false;
-window.addEventListener('hashchange', () => { if (state.session && started) route(); });
+let wasShare = location.hash.startsWith('#/share/');
+window.addEventListener('hashchange', () => {
+  const isShare = location.hash.startsWith('#/share/');
+  if (isShare || wasShare) { wasShare = isShare; if (started) start(); return; }
+  if (state.session && started) route();
+});
 sb.auth.onAuthStateChange((_e, s) => {
   const changed = !!s !== !!state.session;
   state.session = s;
