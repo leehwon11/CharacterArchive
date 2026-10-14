@@ -204,6 +204,18 @@ img { max-width: 100%; display: block; }
 .lightbox .bar button { border: 1px solid rgba(255,255,255,.25); background: rgba(255,255,255,.06); color: #fff; border-radius: 8px; padding: 7px 12px; min-height: 36px; font-size: 12px; }
 .lightbox .bar button:hover { background: rgba(255,255,255,.15); }
 .lightbox .bar button:disabled { opacity: .3; cursor: default; }
+.pal-picker { width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 10px; align-items: center; }
+.pal-loading { color: rgba(255,255,255,.6); font-size: 13px; }
+.pal-grid { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.pal-sw { width: 48px; height: 48px; border-radius: 10px; border: 2px solid transparent; cursor: pointer; position: relative; transition: border-color .15s, transform .15s; }
+.pal-sw:hover { transform: scale(1.12); }
+.pal-sw.on { border-color: #fff; transform: scale(1.12); }
+.pal-sw .pal-check { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 18px; color: #fff; text-shadow: 0 0 4px rgba(0,0,0,.6); opacity: 0; transition: opacity .15s; }
+.pal-sw.on .pal-check { opacity: 1; }
+.pal-sw.exists { opacity: .4; cursor: default; }
+.pal-exists { position: absolute; bottom: -16px; left: 50%; transform: translateX(-50%); font-size: 9px; color: rgba(255,255,255,.5); white-space: nowrap; }
+.pal-acts { display: flex; gap: 10px; align-items: center; }
+.pal-sel-count { color: rgba(255,255,255,.6); font-family: var(--mono); font-size: 12px; }
 
 /* ── 관계도 ── */
 .graph-wrap { position: relative; height: min(62vh, 560px); border: 1px solid var(--line); background: radial-gradient(var(--line) 1px, transparent 1px) 0 0 / 22px 22px; touch-action: none; }

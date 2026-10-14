@@ -1,6 +1,6 @@
 import { saveChar } from '../app.js';
 import { db, upload, removeFiles, imgUrl } from '../db.js';
-import { esc, $, $$, imgTag, hydrate, dropzone, shrink, guard, toast, formModal, confirmBox, ICON } from '../ui.js';
+import { esc, $, $$, imgTag, hydrate, dropzone, shrink, guard, toast, formModal, confirmBox, ICON, extractPalette, inkOn } from '../ui.js';
 import { load, add } from './list.js';
 
 const cur = {};
@@ -204,8 +204,10 @@ export function lightbox(list, start, meta, rows, c, redraw) {
         <span>${i + 1} / ${list.length}</span>
         <button data-n aria-label="다음" ${list.length < 2 ? 'disabled' : ''}>›</button>
         <button data-cap>${r.data.caption ? '메모 수정' : '+ 메모'}</button>
+        <button data-pal>팔레트 추출</button>
         <button data-d>다운로드</button>
-      </div>`;
+      </div>
+      <div class="pal-picker" style="display:none"></div>`;
     const url = await imgUrl(r.data.path);
     box.querySelector('img').src = url;
     box.querySelector('[data-p]').onclick = () => { i = (i - 1 + list.length) % list.length; show(); };
@@ -225,16 +227,45 @@ export function lightbox(list, start, meta, rows, c, redraw) {
       if (redraw) redraw();
       show();
     };
+    box.querySelector('[data-pal]').onclick = async () => {
+      const picker = box.querySelector('.pal-picker');
+      if (picker.style.display !== 'none') { picker.style.display = 'none'; return; }
+      picker.innerHTML = '<span class="pal-loading">색상 추출 중…</span>';
+      picker.style.display = '';
+      try {
+        const colors = await extractPalette(url);
+        if (!colors.length) { picker.innerHTML = '<span class="pal-loading">추출할 색상이 없어요</span>'; return; }
+        const existing = new Set((c.palette || []).map((x) => x.toLowerCase()));
+        picker.innerHTML = `
+          <div class="pal-grid">${colors.map((hex) => `<button type="button" class="pal-sw ${existing.has(hex.toLowerCase()) ? 'exists' : ''}" data-hex="${esc(hex)}" style="background:${hex}" title="${hex}"><span class="pal-check">✓</span>${existing.has(hex.toLowerCase()) ? '<span class="pal-exists">추가됨</span>' : ''}</button>`).join('')}</div>
+          <div class="pal-acts"><span class="pal-sel-count">0개 선택</span><button class="btn sm solid" data-pal-add disabled>팔레트에 추가</button></div>`;
+        const selected = new Set();
+        picker.querySelectorAll('.pal-sw:not(.exists)').forEach((sw) => {
+          sw.onclick = () => {
+            const hex = sw.dataset.hex;
+            if (selected.has(hex)) { selected.delete(hex); sw.classList.remove('on'); }
+            else { selected.add(hex); sw.classList.add('on'); }
+            picker.querySelector('.pal-sel-count').textContent = `${selected.size}개 선택`;
+            picker.querySelector('[data-pal-add]').disabled = !selected.size;
+          };
+        });
+        picker.querySelector('[data-pal-add]').onclick = async () => {
+          const newPalette = [...(c.palette || []), ...selected];
+          await guard(async () => { await saveChar(c, { palette: [...newPalette] }); c.palette = [...newPalette]; }, `${selected.size}개 색상을 팔레트에 추가했어요`);
+          picker.style.display = 'none';
+        };
+      } catch { picker.innerHTML = '<span class="pal-loading">이미지에서 색상을 읽지 못했어요</span>'; }
+    };
   };
 
   // touch swipe
   box.addEventListener('touchstart', (e) => {
-    if (e.target.closest('.bar, .lb-top')) return;
+    if (e.target.closest('.bar, .lb-top, .pal-picker')) return;
     touchStartX = e.touches[0].clientX;
     touchStartY = e.touches[0].clientY;
   }, { passive: true });
   box.addEventListener('touchend', (e) => {
-    if (e.target.closest('.bar, .lb-top')) return;
+    if (e.target.closest('.bar, .lb-top, .pal-picker')) return;
     const dx = e.changedTouches[0].clientX - touchStartX;
     const dy = Math.abs(e.changedTouches[0].clientY - touchStartY);
     if (Math.abs(dx) > 50 && dy < 100) {

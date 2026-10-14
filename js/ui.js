@@ -230,6 +230,41 @@ export async function shrink(file, max = 2400) {
   return new Promise((r) => c.toBlob((b) => r(b || file), type, 0.9));
 }
 
+// ── 이미지 팔레트 추출 (k-means) ──
+export async function extractPalette(src, count = 8) {
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  await new Promise((r, j) => { img.onload = r; img.onerror = j; img.src = src; });
+  const cv = document.createElement('canvas');
+  const s = Math.min(1, 100 / Math.max(img.width, img.height));
+  cv.width = Math.round(img.width * s); cv.height = Math.round(img.height * s);
+  cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+  const d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;
+  const px = [];
+  for (let i = 0; i < d.length; i += 4) {
+    if (d[i + 3] < 128) continue;
+    const l = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+    if (l > 15 && l < 240) px.push([d[i], d[i + 1], d[i + 2]]);
+  }
+  if (!px.length) return [];
+  let ct = Array.from({ length: count }, (_, k) => [...px[Math.floor(k * px.length / count)]]);
+  for (let t = 0; t < 12; t++) {
+    const cl = ct.map(() => []);
+    for (const p of px) { let mi = 0, md = 1e9; ct.forEach((c, i) => { const v = (p[0] - c[0]) ** 2 + (p[1] - c[1]) ** 2 + (p[2] - c[2]) ** 2; if (v < md) { md = v; mi = i; } }); cl[mi].push(p); }
+    ct = cl.map((g, i) => g.length ? [Math.round(g.reduce((a, p) => a + p[0], 0) / g.length), Math.round(g.reduce((a, p) => a + p[1], 0) / g.length), Math.round(g.reduce((a, p) => a + p[2], 0) / g.length)] : ct[i]);
+  }
+  const cl = ct.map(() => []);
+  for (const p of px) { let mi = 0, md = 1e9; ct.forEach((c, i) => { const v = (p[0] - c[0]) ** 2 + (p[1] - c[1]) ** 2 + (p[2] - c[2]) ** 2; if (v < md) { md = v; mi = i; } }); cl[mi].push(p); }
+  const hex = (c) => '#' + c.map((v) => v.toString(16).padStart(2, '0')).join('');
+  const out = ct.map((c, i) => ({ hex: hex(c), n: cl[i].length })).filter((r) => r.n).sort((a, b) => b.n - a.n);
+  const res = [];
+  for (const r of out) {
+    const [r1, g1, b1] = [0, 2, 4].map((i) => parseInt(r.hex.slice(i + 1, i + 3), 16));
+    if (res.every((f) => { const [r2, g2, b2] = [0, 2, 4].map((i) => parseInt(f.slice(i + 1, i + 3), 16)); return (r1 - r2) ** 2 + (g1 - g2) ** 2 + (b1 - b2) ** 2 >= 1200; })) res.push(r.hex);
+  }
+  return res.slice(0, count);
+}
+
 // 글자색 대비
 export function inkOn(hex) {
   const h = String(hex || '#ffffff').replace('#', '').padEnd(6, 'f');
