@@ -13,6 +13,9 @@ export const ICON = {
   down: P('<path d="M12 5v14"/><path d="M6 13l6 6 6-6"/>'),
   upload: P('<path d="M12 16V4"/><path d="M7 9l5-5 5 5"/><path d="M4 20h16"/>'),
   box: P('<path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/>'),
+  gridSm: P('<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>'),
+  gridMd: P('<rect x="3" y="3" width="18" height="7"/><rect x="3" y="14" width="8" height="7"/><rect x="14" y="14" width="7" height="7"/>'),
+  gridLg: P('<rect x="3" y="3" width="18" height="11"/><rect x="3" y="17" width="18" height="4"/>'),
   gear: P('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/>'),
 };
 export const iconBtn = (act, label, icon, cls = '', data = '') =>
@@ -225,6 +228,41 @@ export async function shrink(file, max = 2400) {
   c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
   const type = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
   return new Promise((r) => c.toBlob((b) => r(b || file), type, 0.9));
+}
+
+// ── 이미지 팔레트 추출 (k-means) ──
+export async function extractPalette(src, count = 8) {
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  await new Promise((r, j) => { img.onload = r; img.onerror = j; img.src = src; });
+  const cv = document.createElement('canvas');
+  const s = Math.min(1, 100 / Math.max(img.width, img.height));
+  cv.width = Math.round(img.width * s); cv.height = Math.round(img.height * s);
+  cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+  const d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;
+  const px = [];
+  for (let i = 0; i < d.length; i += 4) {
+    if (d[i + 3] < 128) continue;
+    const l = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+    if (l > 15 && l < 240) px.push([d[i], d[i + 1], d[i + 2]]);
+  }
+  if (!px.length) return [];
+  let ct = Array.from({ length: count }, (_, k) => [...px[Math.floor(k * px.length / count)]]);
+  for (let t = 0; t < 12; t++) {
+    const cl = ct.map(() => []);
+    for (const p of px) { let mi = 0, md = 1e9; ct.forEach((c, i) => { const v = (p[0] - c[0]) ** 2 + (p[1] - c[1]) ** 2 + (p[2] - c[2]) ** 2; if (v < md) { md = v; mi = i; } }); cl[mi].push(p); }
+    ct = cl.map((g, i) => g.length ? [Math.round(g.reduce((a, p) => a + p[0], 0) / g.length), Math.round(g.reduce((a, p) => a + p[1], 0) / g.length), Math.round(g.reduce((a, p) => a + p[2], 0) / g.length)] : ct[i]);
+  }
+  const cl = ct.map(() => []);
+  for (const p of px) { let mi = 0, md = 1e9; ct.forEach((c, i) => { const v = (p[0] - c[0]) ** 2 + (p[1] - c[1]) ** 2 + (p[2] - c[2]) ** 2; if (v < md) { md = v; mi = i; } }); cl[mi].push(p); }
+  const hex = (c) => '#' + c.map((v) => v.toString(16).padStart(2, '0')).join('');
+  const out = ct.map((c, i) => ({ hex: hex(c), n: cl[i].length })).filter((r) => r.n).sort((a, b) => b.n - a.n);
+  const res = [];
+  for (const r of out) {
+    const [r1, g1, b1] = [0, 2, 4].map((i) => parseInt(r.hex.slice(i + 1, i + 3), 16));
+    if (res.every((f) => { const [r2, g2, b2] = [0, 2, 4].map((i) => parseInt(f.slice(i + 1, i + 3), 16)); return (r1 - r2) ** 2 + (g1 - g2) ** 2 + (b1 - b2) ** 2 >= 1200; })) res.push(r.hex);
+  }
+  return res.slice(0, count);
 }
 
 // 글자색 대비
