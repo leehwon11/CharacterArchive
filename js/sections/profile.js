@@ -1,6 +1,6 @@
 import { saveChar, deleteChar, KINDS } from '../app.js';
 import { upload, removeFiles } from '../db.js';
-import { esc, $, $$, imgTag, hydrate, pickFiles, shrink, guard, richHTML, bindRich, iconBtn, toast } from '../ui.js';
+import { esc, $, $$, imgTag, hydrate, pickFiles, shrink, guard, richHTML, bindRich, iconBtn, toast, cropImage } from '../ui.js';
 
 export const PROFILE = {
   basic: ['기본', [
@@ -101,9 +101,11 @@ export default async function profile({ el, c, sub, head }) {
 
   $(el, '[data-act=photo]').onclick = async () => {
     const [f] = await pickFiles(); if (!f) return;
+    const cropped = await cropImage(f);
+    if (!cropped) return;
     await guard(async () => {
       const old = c.image_path;
-      const path = await upload(await shrink(f, 1200), f.name);
+      const path = await upload(await shrink(cropped, 1200), f.name);
       saveChar(c, { image_path: path });
       if (old) removeFiles([old]);
       profile({ el, c, sub, head });
