@@ -230,6 +230,96 @@ export async function shrink(file, max = 2400) {
   return new Promise((r) => c.toBlob((b) => r(b || file), type, 0.9));
 }
 
+// ── 이미지 자르기 ──
+export function cropImage(file, { aspect = 1 } = {}) {
+  return new Promise(async (resolve) => {
+    const bmp = await createImageBitmap(file).catch(() => null);
+    if (!bmp || bmp.width < 10 || bmp.height < 10) return resolve(null);
+    const maxW = Math.min(460, innerWidth - 64);
+    const maxH = Math.min(400, innerHeight - 240);
+    const sc = Math.min(maxW / bmp.width, maxH / bmp.height, 1);
+    const dw = Math.round(bmp.width * sc), dh = Math.round(bmp.height * sc);
+    const side = Math.min(dw, dh) * 0.8;
+    const crop = { x: (dw - side) / 2, y: (dh - side) / 2, w: side, h: side };
+    const m = modal(`<h3>사진 자르기</h3><div class="crop-wrap" style="width:${dw}px;height:${dh}px"><canvas width="${dw}" height="${dh}"></canvas></div><div class="m-acts"><button class="btn ghost" data-n>취소</button><button class="btn solid" data-y>자르기</button></div>`);
+    const cv = m.el.querySelector('canvas'), ctx = cv.getContext('2d');
+    const MIN = 40;
+    const clamp = () => {
+      crop.w = Math.max(MIN, Math.min(crop.w, dw));
+      if (aspect) crop.h = crop.w / aspect;
+      crop.h = Math.max(MIN, Math.min(crop.h, dh));
+      if (aspect) crop.w = crop.h * aspect;
+      crop.x = Math.max(0, Math.min(crop.x, dw - crop.w));
+      crop.y = Math.max(0, Math.min(crop.y, dh - crop.h));
+    };
+    const draw = () => {
+      ctx.drawImage(bmp, 0, 0, dw, dh);
+      ctx.fillStyle = 'rgba(0,0,0,.55)';
+      ctx.fillRect(0, 0, dw, crop.y);
+      ctx.fillRect(0, crop.y + crop.h, dw, dh - crop.y - crop.h);
+      ctx.fillRect(0, crop.y, crop.x, crop.h);
+      ctx.fillRect(crop.x + crop.w, crop.y, dw - crop.x - crop.w, crop.h);
+      ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.lineWidth = 1.5;
+      ctx.strokeRect(crop.x, crop.y, crop.w, crop.h);
+      ctx.strokeStyle = 'rgba(255,255,255,.25)'; ctx.lineWidth = .5;
+      for (let k = 1; k < 3; k++) {
+        ctx.beginPath(); ctx.moveTo(crop.x + crop.w * k / 3, crop.y); ctx.lineTo(crop.x + crop.w * k / 3, crop.y + crop.h); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(crop.x, crop.y + crop.h * k / 3); ctx.lineTo(crop.x + crop.w, crop.y + crop.h * k / 3); ctx.stroke();
+      }
+      ctx.fillStyle = '#fff';
+      [[crop.x, crop.y], [crop.x + crop.w, crop.y], [crop.x, crop.y + crop.h], [crop.x + crop.w, crop.y + crop.h]].forEach(([hx, hy]) => { ctx.beginPath(); ctx.arc(hx, hy, 5, 0, Math.PI * 2); ctx.fill(); });
+    };
+    clamp(); draw();
+    let drag = null;
+    const pos = (e) => { const r = cv.getBoundingClientRect(); const t = e.touches ? e.touches[0] : e; return { px: (t.clientX - r.left) * dw / r.width, py: (t.clientY - r.top) * dh / r.height }; };
+    const hitTest = (px, py) => {
+      const d = 16;
+      if (Math.hypot(px - crop.x, py - crop.y) < d) return 'nw';
+      if (Math.hypot(px - crop.x - crop.w, py - crop.y) < d) return 'ne';
+      if (Math.hypot(px - crop.x, py - crop.y - crop.h) < d) return 'sw';
+      if (Math.hypot(px - crop.x - crop.w, py - crop.y - crop.h) < d) return 'se';
+      if (px >= crop.x && px <= crop.x + crop.w && py >= crop.y && py <= crop.y + crop.h) return 'move';
+      return null;
+    };
+    const cursors = { move: 'move', nw: 'nwse-resize', se: 'nwse-resize', ne: 'nesw-resize', sw: 'nesw-resize' };
+    const onDown = (e) => { e.preventDefault(); const { px, py } = pos(e); const h = hitTest(px, py); if (h) drag = { type: h, sx: px, sy: py, x: crop.x, y: crop.y, w: crop.w, h: crop.h }; };
+    const onMove = (e) => {
+      if (!drag) { if (!e.touches) { const { px, py } = pos(e); cv.style.cursor = cursors[hitTest(px, py)] || 'default'; } return; }
+      e.preventDefault();
+      const { px, py } = pos(e), dx = px - drag.sx, dy = py - drag.sy, t = drag.type;
+      if (t === 'move') { crop.x = drag.x + dx; crop.y = drag.y + dy; }
+      else {
+        if (t.includes('e')) crop.w = drag.w + dx;
+        if (t.includes('w')) { crop.w = drag.w - dx; crop.x = drag.x + drag.w - crop.w; }
+        if (aspect) { crop.h = crop.w / aspect; if (t.includes('n')) crop.y = drag.y + drag.h - crop.h; }
+        else { if (t.includes('s')) crop.h = drag.h + dy; if (t.includes('n')) { crop.h = drag.h - dy; crop.y = drag.y + drag.h - crop.h; } }
+      }
+      clamp(); draw();
+    };
+    const onUp = () => { drag = null; };
+    cv.addEventListener('mousedown', onDown);
+    cv.addEventListener('touchstart', onDown, { passive: false });
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('touchmove', onMove, { passive: false });
+    window.addEventListener('mouseup', onUp);
+    window.addEventListener('touchend', onUp);
+    const cleanup = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('touchmove', onMove); window.removeEventListener('mouseup', onUp); window.removeEventListener('touchend', onUp); bmp.close(); };
+    let settled = false;
+    const origClose = m.close;
+    m.close = () => { origClose(); cleanup(); if (!settled) { settled = true; resolve(null); } };
+    m.el.querySelector('[data-n]').onclick = () => m.close();
+    m.el.querySelector('[data-y]').onclick = () => {
+      settled = true;
+      const out = document.createElement('canvas');
+      const rx = crop.x / sc, ry = crop.y / sc, rw = crop.w / sc, rh = crop.h / sc;
+      out.width = Math.round(rw); out.height = Math.round(rh);
+      out.getContext('2d').drawImage(bmp, rx, ry, rw, rh, 0, 0, out.width, out.height);
+      origClose(); cleanup();
+      out.toBlob((b) => resolve(b), file.type === 'image/png' ? 'image/png' : 'image/jpeg', 0.92);
+    };
+  });
+}
+
 // ── 이미지 팔레트 추출 (k-means) ──
 export async function extractPalette(src, count = 8) {
   const img = new Image();
